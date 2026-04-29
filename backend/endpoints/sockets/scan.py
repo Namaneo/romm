@@ -342,6 +342,29 @@ async def _identify_rom(
         socket_manager=socket_manager,
     )
 
+    # Fall back to ES-DE gamelist hashes when local hashing produced none.
+    # gamelist hashes describe the whole game, so only apply per-file when
+    # the ROM is a single file.
+    gamelist_meta = scanned_rom.gamelist_metadata or {}
+    gl_crc = gamelist_meta.get("crc32_hash") or ""
+    gl_md5 = gamelist_meta.get("md5_hash") or ""
+    gl_sha1 = gamelist_meta.get("sha1_hash") or ""
+    if gl_crc or gl_md5 or gl_sha1:
+        if not scanned_rom.crc_hash and gl_crc:
+            scanned_rom.crc_hash = gl_crc
+        if not scanned_rom.md5_hash and gl_md5:
+            scanned_rom.md5_hash = gl_md5
+        if not scanned_rom.sha1_hash and gl_sha1:
+            scanned_rom.sha1_hash = gl_sha1
+        if should_update_files and len(fs_rom.get("files", [])) == 1:
+            only_file = fs_rom["files"][0]
+            if not only_file.crc_hash and gl_crc:
+                only_file.crc_hash = gl_crc
+            if not only_file.md5_hash and gl_md5:
+                only_file.md5_hash = gl_md5
+            if not only_file.sha1_hash and gl_sha1:
+                only_file.sha1_hash = gl_sha1
+
     await scan_stats.increment(
         socket_manager=socket_manager,
         scanned_roms=1,

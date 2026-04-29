@@ -61,7 +61,9 @@ class GamelistMetadata(GamelistMetadataMedia):
     franchises: list[str] | None
     genres: list[str] | None
     player_count: str | None
+    crc32_hash: str | None
     md5_hash: str | None
+    sha1_hash: str | None
     box3d_path: str | None
     miximage_path: str | None
     physical_path: str | None
@@ -71,6 +73,7 @@ class GamelistMetadata(GamelistMetadataMedia):
 
 class GamelistRom(BaseRom):
     gamelist_id: str | None
+    ss_id: int | None
     regions: NotRequired[list[str]]
     languages: NotRequired[list[str]]
     gamelist_metadata: NotRequired[GamelistMetadata]
@@ -187,7 +190,9 @@ def extract_metadata_from_gamelist_rom(
     family_elem = game.find("family")
     genre_elem = game.find("genre")
     players_elem = game.find("players")
+    crc32_elem = game.find("crc32")
     md5_elem = game.find("md5")
+    sha1_elem = game.find("sha1")
 
     rating = (
         float(rating_elem.text)
@@ -214,7 +219,9 @@ def extract_metadata_from_gamelist_rom(
     players = (
         players_elem.text if players_elem is not None and players_elem.text else None
     )
+    crc32 = crc32_elem.text if crc32_elem is not None and crc32_elem.text else None
     md5 = md5_elem.text if md5_elem is not None and md5_elem.text else None
+    sha1 = sha1_elem.text if sha1_elem is not None and sha1_elem.text else None
 
     return GamelistMetadata(
         rating=rating,
@@ -232,7 +239,9 @@ def extract_metadata_from_gamelist_rom(
         franchises=_split_comma_separated_values(family),
         genres=_split_comma_separated_values(genre),
         player_count=players,
+        crc32_hash=crc32,
         md5_hash=md5,
+        sha1_hash=sha1,
         box3d_path=None,
         miximage_path=None,
         physical_path=None,
@@ -403,10 +412,15 @@ class GamelistHandler(MetadataHandler):
                     else []
                 )
 
+                ss_id = (
+                    int(game.attrib["id"]) if game.attrib["id"] is not None else None
+                )
+
                 # Build ROM data
                 rom_metadata = extract_metadata_from_gamelist_rom(game, platform)
                 rom_data = GamelistRom(
                     gamelist_id=str(uuid.uuid4()),
+                    ss_id=ss_id,
                     name=name,
                     summary=summary,
                     regions=regions,
