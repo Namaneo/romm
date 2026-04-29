@@ -28,7 +28,7 @@ import storeHeartbeat from "@/stores/heartbeat";
 import storeRoms from "@/stores/roms";
 import type { SimpleRom, SearchRom } from "@/stores/roms";
 import type { Events } from "@/types/emitter";
-import { FRONTEND_RESOURCES_PATH } from "@/utils";
+import { mediaUrl } from "@/utils";
 import {
   getMissingCoverImage,
   getUnmatchedCoverImage,
@@ -173,8 +173,7 @@ const isWebpEnabled = computed(
 
 const largeCover = computed(() => {
   if (props.coverSrc) return props.coverSrc;
-  if (boxartStyleCover.value)
-    return `${FRONTEND_RESOURCES_PATH}/${boxartStyleCover.value}`;
+  if (boxartStyleCover.value) return mediaUrl(boxartStyleCover.value);
   if (!romsStore.isSimpleRom(props.rom)) {
     return (
       props.rom.igdb_url_cover ||
@@ -192,8 +191,7 @@ const largeCover = computed(() => {
 
 const smallCover = computed(() => {
   if (props.coverSrc) return props.coverSrc;
-  if (boxartStyleCover.value)
-    return `${FRONTEND_RESOURCES_PATH}/${boxartStyleCover.value}`;
+  if (boxartStyleCover.value) return mediaUrl(boxartStyleCover.value);
   if (!romsStore.isSimpleRom(props.rom)) return "";
   const pathCoverSmall = isWebpEnabled.value
     ? props.rom.path_cover_small?.replace(EXTENSION_REGEX, ".webp")
@@ -452,7 +450,7 @@ onBeforeUnmount(() => {
             <div class="position-relative max-h-full" style="margin-top: -40px">
               <video
                 ref="hover-video-ref"
-                :src="`${FRONTEND_RESOURCES_PATH}/${localVideoPath}`"
+                :src="mediaUrl(localVideoPath)"
                 class="hover-video position-absolute"
                 loop
                 playsinline

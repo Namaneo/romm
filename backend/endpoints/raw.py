@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 
 from decorators.auth import protected_route
 from handler.auth.constants import Scope
-from handler.filesystem import fs_asset_handler
+from handler.filesystem import fs_asset_handler, fs_platform_handler
 from handler.filesystem.assets_handler import SAFE_IMAGE_MIME_TYPES
 from utils.router import APIRouter
 
@@ -70,5 +70,31 @@ def get_raw_asset(request: Request, path: str):
     # Check if file exists and is a file (not directory)
     if not resolved_path.exists() or not resolved_path.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
+
+    return _build_asset_response(resolved_path)
+
+
+@protected_route(router.head, "/library/{path:path}", [Scope.ASSETS_READ])
+def head_raw_library(request: Request, path: str):
+    try:
+        resolved_path = fs_platform_handler.validate_path(path)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Library file not found") from exc
+
+    if not resolved_path.exists() or not resolved_path.is_file():
+        return HTTPException(status_code=404, detail="Library file not found")
+
+    return _build_asset_response(resolved_path)
+
+
+@protected_route(router.get, "/library/{path:path}", [Scope.ASSETS_READ])
+def get_raw_library(request: Request, path: str):
+    try:
+        resolved_path = fs_platform_handler.validate_path(path)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Library file not found") from exc
+
+    if not resolved_path.exists() or not resolved_path.is_file():
+        return HTTPException(status_code=404, detail="Library file not found")
 
     return _build_asset_response(resolved_path)
