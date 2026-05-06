@@ -419,9 +419,8 @@ class GamelistHandler(MetadataHandler):
                     if lang_elem is not None
                     else []
                 )
-
                 ss_id = (
-                    int(game.attrib["id"]) if game.attrib["id"] is not None else None
+                    int(game.attrib.get("id")) if game.attrib.get("id") is not None else None
                 )
 
                 # Build ROM data
