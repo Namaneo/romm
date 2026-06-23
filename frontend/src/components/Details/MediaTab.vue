@@ -9,7 +9,7 @@ import romApi from "@/services/api/rom";
 import storeRoms, { type DetailedRom } from "@/stores/roms";
 import storeUpload from "@/stores/upload";
 import type { Events } from "@/types/emitter";
-import { FRONTEND_RESOURCES_PATH } from "@/utils";
+import { mediaUrl } from "@/utils";
 
 const PdfViewer = defineAsyncComponent(
   () => import("@/components/Details/PDFViewer.vue"),
@@ -89,7 +89,7 @@ const manualEntries = computed<ManualEntry[]>(() => {
     entries.push({
       id: "primary",
       label: t("rom.scraped-manual"),
-      url: `${FRONTEND_RESOURCES_PATH}/${props.rom.path_manual}?v=${cacheBust}`,
+      url: `${mediaUrl(props.rom.path_manual)}?v=${cacheBust}`,
       isPrimary: true,
     });
   }

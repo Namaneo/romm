@@ -33,6 +33,7 @@ import {
 import { useUISettings } from "@/composables/useUISettings";
 import type { SimpleRom } from "@/stores/roms";
 import {
+  FRONTEND_LIBRARY_PATH,
   FRONTEND_RESOURCES_PATH,
   isCDBasedSystem,
   isArcadeSystem,
@@ -144,6 +145,12 @@ export function computeCoverArt(
   opts: ComputeOptions,
 ): CoverArtDescriptor {
   const ratio = coverRatio(style);
+  // ES-DE gamelist media kept in place carries a `library://` scheme and is
+  // served from the raw library endpoint rather than the resources tree.
+  const resolveMedia = (path: string): string =>
+    path.startsWith("library://")
+      ? `${FRONTEND_LIBRARY_PATH}/${path.slice("library://".length)}`
+      : `${opts.resourcesPath}/${path}`;
   // Treat an empty string as "no override" — a preview field that hasn't
   // been set yet (e.g. EditRomDialog opens `imagePreviewUrl = ""`) must
   // still resolve the rom's own cover, not blank out to the placeholder.
@@ -156,7 +163,7 @@ export function computeCoverArt(
   if (override != null) {
     coverUrl = override;
   } else if (altPath != null) {
-    coverUrl = `${opts.resourcesPath}/${altPath}`;
+    coverUrl = resolveMedia(altPath);
   } else {
     const local = rom.path_cover_large ?? rom.path_cover_small ?? null;
     coverUrl =
@@ -172,7 +179,7 @@ export function computeCoverArt(
 
   const videoUrl =
     style === "miximage_path" && rom.path_video
-      ? `${opts.resourcesPath}/${rom.path_video}`
+      ? resolveMedia(rom.path_video)
       : null;
 
   return {

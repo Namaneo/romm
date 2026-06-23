@@ -14,7 +14,7 @@ import { useI18n } from "vue-i18n";
 import { ROUTES } from "@/plugins/router";
 import type { ActivityEntry } from "@/services/api/activity";
 import storeActivity from "@/stores/activity";
-import { FRONTEND_RESOURCES_PATH } from "@/utils";
+import { mediaUrl } from "@/utils";
 import ActivityCard from "@/v2/components/Activity/ActivityCard.vue";
 import EmptyState from "@/v2/components/shared/EmptyState.vue";
 import { useWebpSupport } from "@/v2/composables/useWebpSupport";
@@ -66,7 +66,12 @@ function romRoute(entry: ActivityEntry) {
 // its own canonical placeholder (title initial).
 function coverArtSrc(entry: ActivityEntry): string | null {
   if (!entry.rom_cover_path) return null;
-  return `${FRONTEND_RESOURCES_PATH}/${toWebp(entry.rom_cover_path)}`;
+  // ES-DE gamelist media kept in place (`library://`) is served as-is — its
+  // webp variant isn't on disk, so only rewrite resources-tree covers.
+  if (entry.rom_cover_path.startsWith("library://")) {
+    return mediaUrl(entry.rom_cover_path);
+  }
+  return mediaUrl(toWebp(entry.rom_cover_path));
 }
 
 // Main image: the "where they are" screenshot (already a full URL) if the

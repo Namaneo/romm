@@ -62,7 +62,9 @@ class GamelistMetadata(GamelistMetadataMedia):
     franchises: list[str] | None
     genres: list[str] | None
     player_count: str | None
+    crc32_hash: str | None
     md5_hash: str | None
+    sha1_hash: str | None
     box3d_path: str | None
     miximage_path: str | None
     physical_path: str | None
@@ -72,6 +74,7 @@ class GamelistMetadata(GamelistMetadataMedia):
 
 class GamelistRom(BaseRom):
     gamelist_id: str | None
+    ss_id: int | None
     regions: NotRequired[list[str]]
     languages: NotRequired[list[str]]
     gamelist_metadata: NotRequired[GamelistMetadata]
@@ -110,11 +113,15 @@ XML_TAG_MAP: Final = {
 }
 
 
+def _scheme() -> str:
+    return "library" if cm.get_config().GAMELIST_USE_ORIGINAL_MEDIA else "file"
+
+
 def _make_file_uri(platform_dir: str, raw_text: str) -> str:
     cleaned_text = raw_text.replace("./", "")
     joined_path = Path(platform_dir, cleaned_text)
     fs_platform_handler.validate_path(str(joined_path))
-    return f"file://{joined_path.as_posix()}"
+    return f"{_scheme()}://{joined_path.as_posix()}"
 
 
 def _split_comma_separated_values(value: str | None) -> list[str]:
@@ -172,7 +179,7 @@ def extract_media_from_gamelist_rom(
             if found_files:
                 # trunk-ignore(mypy/literal-required)
                 gamelist_media[media_key] = (
-                    f"file://{str(Path(found_files[0]).relative_to(fs_platform_handler.base_path))}"
+                    f"{_scheme()}://{str(Path(found_files[0]).relative_to(fs_platform_handler.base_path))}"
                 )
 
     return gamelist_media
@@ -189,7 +196,9 @@ def extract_metadata_from_gamelist_rom(
     family_elem = game.find("family")
     genre_elem = game.find("genre")
     players_elem = game.find("players")
+    crc32_elem = game.find("crc32")
     md5_elem = game.find("md5")
+    sha1_elem = game.find("sha1")
 
     rating = (
         float(rating_elem.text)
@@ -219,7 +228,9 @@ def extract_metadata_from_gamelist_rom(
     players = (
         players_elem.text if players_elem is not None and players_elem.text else None
     )
+    crc32 = crc32_elem.text if crc32_elem is not None and crc32_elem.text else None
     md5 = md5_elem.text if md5_elem is not None and md5_elem.text else None
+    sha1 = sha1_elem.text if sha1_elem is not None and sha1_elem.text else None
 
     return GamelistMetadata(
         rating=rating,
@@ -238,7 +249,9 @@ def extract_metadata_from_gamelist_rom(
         franchises=_split_comma_separated_values(family),
         genres=_split_comma_separated_values(genre),
         player_count=players,
+        crc32_hash=crc32,
         md5_hash=md5,
+        sha1_hash=sha1,
         box3d_path=None,
         miximage_path=None,
         physical_path=None,
@@ -246,6 +259,14 @@ def extract_metadata_from_gamelist_rom(
         video_path=None,
         **extract_media_from_gamelist_rom(game, platform),
     )
+
+
+def _media_path(
+    rom: Rom, url: str | None, media_type: MetadataMediaType, filename: str
+) -> str:
+    if url and url.startswith("library://"):
+        return url
+    return f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, media_type)}/{filename}"
 
 
 def populate_rom_specific_paths(
@@ -261,38 +282,50 @@ def populate_rom_specific_paths(
     if MetadataMediaType.BOX3D in preferred_media_types and rom_metadata.get(
         "box3d_url"
     ):
-        updated_metadata["box3d_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.BOX3D)}/box3d.png"
+        updated_metadata["box3d_path"] = _media_path(
+            rom, rom_metadata.get("box3d_url"), MetadataMediaType.BOX3D, "box3d.png"
         )
     if MetadataMediaType.MARQUEE in preferred_media_types and rom_metadata.get(
         "marquee_url"
     ):
-        updated_metadata["marquee_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.MARQUEE)}/marquee.png"
+        updated_metadata["marquee_path"] = _media_path(
+            rom,
+            rom_metadata.get("marquee_url"),
+            MetadataMediaType.MARQUEE,
+            "marquee.png",
         )
     if MetadataMediaType.MIXIMAGE in preferred_media_types and rom_metadata.get(
         "miximage_url"
     ):
-        updated_metadata["miximage_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.MIXIMAGE)}/miximage.png"
+        updated_metadata["miximage_path"] = _media_path(
+            rom,
+            rom_metadata.get("miximage_url"),
+            MetadataMediaType.MIXIMAGE,
+            "miximage.png",
         )
     if MetadataMediaType.PHYSICAL in preferred_media_types and rom_metadata.get(
         "physical_url"
     ):
-        updated_metadata["physical_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.PHYSICAL)}/physical.png"
+        updated_metadata["physical_path"] = _media_path(
+            rom,
+            rom_metadata.get("physical_url"),
+            MetadataMediaType.PHYSICAL,
+            "physical.png",
         )
     if MetadataMediaType.TITLE_SCREEN in preferred_media_types and rom_metadata.get(
         "title_screen_url"
     ):
-        updated_metadata["title_screen_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.TITLE_SCREEN)}/title_screen.png"
+        updated_metadata["title_screen_path"] = _media_path(
+            rom,
+            rom_metadata.get("title_screen_url"),
+            MetadataMediaType.TITLE_SCREEN,
+            "title_screen.png",
         )
     if MetadataMediaType.VIDEO in preferred_media_types and rom_metadata.get(
         "video_url"
     ):
-        updated_metadata["video_path"] = (
-            f"{fs_resource_handler.get_media_resources_path(rom.platform_id, rom.id, MetadataMediaType.VIDEO)}/video.mp4"
+        updated_metadata["video_path"] = _media_path(
+            rom, rom_metadata.get("video_url"), MetadataMediaType.VIDEO, "video.mp4"
         )
 
     return updated_metadata
@@ -414,12 +447,18 @@ class GamelistHandler(MetadataHandler):
                     if lang_elem is not None
                     else []
                 )
+                ss_id = (
+                    int(game.attrib.get("id"))
+                    if game.attrib.get("id") is not None
+                    else None
+                )
 
                 # Build ROM data
                 rom_metadata = extract_metadata_from_gamelist_rom(game, platform)
                 name_sort_key = compute_name_sort_key(sort_name) if sort_name else None
                 rom_data = GamelistRom(
                     gamelist_id=str(uuid.uuid4()),
+                    ss_id=ss_id,
                     name=name,
                     name_sort_key=name_sort_key,
                     summary=summary,

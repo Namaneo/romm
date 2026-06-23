@@ -15,7 +15,7 @@ import { useI18n } from "vue-i18n";
 import romApi from "@/services/api/rom";
 import storeRoms, { type DetailedRom } from "@/stores/roms";
 import type { Events } from "@/types/emitter";
-import { FRONTEND_RESOURCES_PATH } from "@/utils";
+import { mediaUrl } from "@/utils";
 import { useConfirm } from "@/v2/composables/useConfirm";
 import { useSnackbar } from "@/v2/composables/useSnackbar";
 
@@ -61,7 +61,7 @@ const manualEntries = computed<ManualEntry[]>(() => {
     entries.push({
       id: "primary",
       label: t("rom.scraped-manual"),
-      url: `${FRONTEND_RESOURCES_PATH}/${props.rom.path_manual}?v=${cacheBust}`,
+      url: `${mediaUrl(props.rom.path_manual)}?v=${cacheBust}`,
       isPrimary: true,
       kind: isMarkdown(props.rom.path_manual) ? "md" : "pdf",
     });

@@ -35,7 +35,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from config import FRONTEND_RESOURCES_PATH
+from config import FRONTEND_RESOURCES_PATH, FRONTEND_LIBRARY_PATH
 from models.base import (
     FILE_EXTENSION_MAX_LENGTH,
     FILE_NAME_MAX_LENGTH,
@@ -66,6 +66,12 @@ if TYPE_CHECKING:
     from models.collection import Collection
     from models.platform import Platform
     from models.user import User
+
+
+def _media_url(path: str) -> str:
+    if path.startswith("library://"):
+        return f"{FRONTEND_LIBRARY_PATH}/{path[len('library://') :]}"
+    return f"{FRONTEND_RESOURCES_PATH}/{path}"
 
 
 class RomFileCategory(enum.StrEnum):
@@ -463,7 +469,7 @@ class Rom(BaseModel):
     @cached_property
     def merged_screenshots(self) -> list[str]:
         if self.path_screenshots:
-            return [f"{FRONTEND_RESOURCES_PATH}/{s}" for s in self.path_screenshots]
+            return [_media_url(s) for s in self.path_screenshots]
 
         return []
 
@@ -491,7 +497,7 @@ class Rom(BaseModel):
     @property
     def path_cover_small(self) -> str:
         return (
-            f"{FRONTEND_RESOURCES_PATH}/{self.path_cover_s}?ts={self.updated_at}"
+            f"{_media_url(self.path_cover_s)}?ts={self.updated_at}"
             if self.path_cover_s
             else ""
         )
@@ -499,7 +505,7 @@ class Rom(BaseModel):
     @property
     def path_cover_large(self) -> str:
         return (
-            f"{FRONTEND_RESOURCES_PATH}/{self.path_cover_l}?ts={self.updated_at}"
+            f"{_media_url(self.path_cover_l)}?ts={self.updated_at}"
             if self.path_cover_l
             else ""
         )
